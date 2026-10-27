@@ -31,6 +31,7 @@
 #accountGate .account-primary,#accountGate .account-switch{width:100%;min-height:44px;border-radius:11px;font:700 14px system-ui;cursor:pointer}
 #accountGate .account-primary{border:0;background:#00a884;color:#fff}
 #accountGate .account-switch{border:1px solid #ffffff42;background:transparent;color:#fff}
+#accountGate .account-switch[hidden],#accountGate #recoveryCodeRow[hidden]{display:none}
 #accountGate .account-status{min-height:20px;margin:0;color:#ffe2a8;font-size:13px;overflow-wrap:anywhere}
 #accountGate .account-privacy{font-size:11px;color:#b6c5d8;line-height:1.45}
 .app.account-locked{display:none!important}
@@ -53,6 +54,8 @@
       <label class="account-consent" id="accountConsentRow"><input id="accountConsent" type="checkbox" required><span>Concordo que meu nome, sobrenome, e-mail e número de telefone sejam usados para criar e manter minha conta do chatbot. A senha é protegida pelo Supabase Auth.</span></label>
       <button class="account-primary" id="accountSubmit" type="submit">Criar conta</button>
       <button class="account-switch" id="accountModeSwitch" type="button">Já tenho conta — entrar</button>
+      <button class="account-switch" id="accountForgotPassword" type="button" hidden>Esqueci minha senha</button>
+      <label id="recoveryCodeRow" hidden>Código recebido por e-mail<input id="recoveryCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8"></label>
       <p class="account-status" id="accountStatus" role="status" aria-live="polite"></p>
       <p class="account-privacy">Seus dados de cadastro ficam no banco privado do projeto. Não use uma senha que já utiliza em outros serviços. Para solicitar exclusão da conta e dos dados, entre em contato com o responsável pelo chatbot.</p>
     </form>
@@ -114,15 +117,18 @@ try{let saved=JSON.parse(localStorage.getItem(STORE)||'null');if(saved?.cfg){cfg
  const SUPABASE_URL='https://iwgyfaxbejuzjkmgwdbl.supabase.co';
  const SUPABASE_ANON_KEY='sb_publishable_SBmXbWG-O8wCXVqME6cH9g_rCHbkzL9';
  const gate=document.getElementById('accountGate'), app=document.querySelector('.app'), form=document.getElementById('accountForm');
- const $=id=>document.getElementById(id); let mode='signup', authClient;
+ const $=id=>document.getElementById(id); let mode='signup', authClient, recoveryCodeSent=false;
  app.classList.add('account-locked');
  try { if(!window.supabase?.createClient) throw new Error('Não foi possível carregar o serviço de autenticação. Atualize a página e tente novamente.'); authClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}); }
  catch(e){ $('accountStatus').textContent=e.message; return; }
- function setMode(next){mode=next;const signup=mode==='signup';$('accountNames').hidden=!signup;$('accountFirstName').required=signup;$('accountLastName').required=signup;$('accountEmailConfirm').parentElement.hidden=!signup;$('accountEmailConfirm').required=signup;$('accountPhone').parentElement.hidden=!signup;$('accountPhone').required=signup;$('accountPhoneConfirm').parentElement.hidden=!signup;$('accountPhoneConfirm').required=signup;$('accountConsentRow').hidden=!signup;$('accountConsent').required=signup;$('accountPassword').autocomplete=signup?'new-password':'current-password';$('accountTitle').textContent=signup?'Crie sua conta':'Entre no Chatbot Gemini';$('accountIntro').textContent=signup?'Informe seus dados para criar uma conta. Cada pessoa usa sua própria chave Gemini, configurada neste aparelho.':'Entre com seu e-mail e senha para continuar. Sua chave Gemini permanece neste aparelho.';$('accountSubmit').textContent=signup?'Criar conta':'Entrar';$('accountModeSwitch').textContent=signup?'Já tenho conta — entrar':'Criar uma conta';$('accountStatus').textContent='';}
+ function setMode(next){mode=next;const signup=mode==='signup',recovery=mode==='recovery';$('accountNames').hidden=!signup;$('accountFirstName').required=signup;$('accountLastName').required=signup;$('accountEmailConfirm').parentElement.hidden=!signup;$('accountEmailConfirm').required=signup;$('accountPhone').parentElement.hidden=!signup;$('accountPhone').required=signup;$('accountPhoneConfirm').parentElement.hidden=!signup;$('accountPhoneConfirm').required=signup;$('accountConsentRow').hidden=!signup;$('accountConsent').required=signup;$('accountPassword').autocomplete=signup?'new-password':'current-password';$('accountPassword').parentElement.hidden=recovery&&!recoveryCodeSent;$('accountPassword').required=signup||mode==='signin'||(recovery&&recoveryCodeSent);$('accountPassword').parentElement.firstChild.textContent=recovery?'Nova senha':'Senha';$('recoveryCodeRow').hidden=!recovery||!recoveryCodeSent;$('recoveryCode').required=recovery&&recoveryCodeSent;$('accountTitle').textContent=signup?'Crie sua conta':recovery?'Recuperar senha':'Entre no Chatbot Gemini';$('accountIntro').textContent=signup?'Informe seus dados para criar uma conta. Cada pessoa usa sua própria chave Gemini, configurada neste aparelho.':recovery?'Informe o e-mail da conta para receber um código de recuperação.':'Entre com seu e-mail e senha para continuar. Sua chave Gemini permanece neste aparelho.';$('accountSubmit').textContent=signup?'Criar conta':recovery?(recoveryCodeSent?'Confirmar código e redefinir senha':'Enviar código'):'Entrar';$('accountModeSwitch').hidden=recovery;$('accountModeSwitch').textContent=signup?'Já tenho conta — entrar':'Criar uma conta';$('accountForgotPassword').hidden=signup||recovery;$('accountStatus').textContent='';}
  function showSession(session){const ok=!!session;app.classList.toggle('account-locked',!ok);gate.hidden=ok;if(ok){$('signedInEmail').textContent='Conectado como '+(session.user.email||'');}else{form.reset();setMode('signup');}}
  form.addEventListener('submit',async e=>{e.preventDefault();const status=$('accountStatus'),btn=$('accountSubmit');status.textContent='';btn.disabled=true;
  try {const email=$('accountEmailInput').value.trim().toLowerCase(),password=$('accountPassword').value;
-   if(mode==='signup'){
+   if(mode==='recovery'){
+     if(!recoveryCodeSent){const {error}=await authClient.auth.resetPasswordForEmail(email);if(error)throw error;recoveryCodeSent=true;$('accountPassword').parentElement.hidden=false;$('accountPassword').required=true;$('accountPassword').autocomplete='new-password';$('accountPassword').parentElement.firstChild.textContent='Nova senha';$('recoveryCodeRow').hidden=false;$('recoveryCode').required=true;$('accountSubmit').textContent='Confirmar código e redefinir senha';status.textContent='Se esse e-mail tiver uma conta, o código foi enviado. Confira também o spam.';}
+     else{const token=$('recoveryCode').value.trim();if(!/^\d{6,8}$/.test(token))throw new Error('Digite o código recebido por e-mail.');const {data,error}=await authClient.auth.verifyOtp({email,token,type:'recovery'});if(error)throw error;if(!data.session)throw new Error('Não foi possível validar o código. Peça um novo e tente novamente.');const {error:updateError}=await authClient.auth.updateUser({password});if(updateError)throw updateError;recoveryCodeSent=false;status.textContent='Senha redefinida. Você já entrou na sua conta.';showSession(data.session);}
+   }else if(mode==='signup'){
      const emailConfirm=$('accountEmailConfirm').value.trim().toLowerCase();
      if(email!==emailConfirm)throw new Error('Os e-mails não conferem. Confira os dois campos.');
      const phone=$('accountPhone').value.trim(),phoneConfirm=$('accountPhoneConfirm').value.trim();
@@ -138,7 +144,8 @@ try{let saved=JSON.parse(localStorage.getItem(STORE)||'null');if(saved?.cfg){cfg
    }else{const {data,error}=await authClient.auth.signInWithPassword({email,password});if(error)throw error;showSession(data.session);}
  }catch(err){status.textContent=err?.message||'Não foi possível concluir. Confira os dados e tente novamente.';}finally{btn.disabled=false;}
  });
- $('accountModeSwitch').addEventListener('click',()=>setMode(mode==='signup'?'signin':'signup'));
+ $('accountModeSwitch').addEventListener('click',()=>{recoveryCodeSent=false;setMode(mode==='signup'?'signin':'signup');});
+ $('accountForgotPassword').addEventListener('click',()=>{recoveryCodeSent=false;$('recoveryCode').value='';$('accountPassword').value='';setMode('recovery');});
  $('accountSignOut').addEventListener('click',async()=>{const {error}=await authClient.auth.signOut();if(error){toast(error.message);return}showSession(null);$('settings').classList.remove('open');});
  authClient.auth.onAuthStateChange((_event,session)=>showSession(session));
  authClient.auth.getSession().then(({data,error})=>{if(error){$('accountStatus').textContent=error.message;return}showSession(data.session)}).catch(()=>{$('accountStatus').textContent='Não foi possível verificar a conta. Confira sua conexão.';});
