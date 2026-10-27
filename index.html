@@ -52,13 +52,13 @@
       <label>Número de telefone<input id="accountPhone" type="tel" autocomplete="tel" maxlength="30" required></label>
       <label>Confirmar número de telefone<input id="accountPhoneConfirm" type="tel" autocomplete="tel" maxlength="30" required></label>
       <label>Senha<input id="accountPassword" type="password" autocomplete="new-password" minlength="8" required></label>
+      <label id="accountPasswordConfirmRow" hidden>Confirmar senha<input id="accountPasswordConfirm" type="password" autocomplete="new-password" minlength="8" required></label>
       <label class="account-consent" id="accountConsentRow"><input id="accountConsent" type="checkbox" required><span>Concordo que meu nome, sobrenome, e-mail e número de telefone sejam usados para criar e manter minha conta do chatbot. A senha é protegida pelo Supabase Auth.</span></label>
       <button class="account-primary" id="accountSubmit" type="submit">Criar conta</button>
       <button class="account-switch" id="accountModeSwitch" type="button">Já tenho conta — entrar</button>
       <button class="account-switch" id="accountForgotPassword" type="button" hidden>Esqueci minha senha</button>
       <label id="recoveryCodeRow" hidden>Código recebido por e-mail<input id="recoveryCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8"></label>
       <button class="account-switch" id="resendRecoveryCode" type="button" hidden>Reenviar código</button>
-      <label id="accountPasswordConfirmRow" hidden>Confirmar senha<input id="accountPasswordConfirm" type="password" autocomplete="new-password" minlength="8" required></label>
       <p class="account-status" id="accountStatus" role="status" aria-live="polite"></p>
       <p class="account-privacy" id="accountPrivacy">Seus dados de cadastro ficam no banco privado do projeto. Não use uma senha que já utiliza em outros serviços. Para solicitar exclusão da conta e dos dados, entre em contato com o responsável pelo chatbot.</p>
     </form>
