@@ -144,11 +144,13 @@ try{let saved=JSON.parse(localStorage.getItem(STORE)||'null');if(saved?.cfg){cfg
      if(!$('accountConsent').checked)throw new Error('Confirme o uso dos dados para criar sua conta.');
      const {data,error}=await authClient.auth.signUp({email,password,options:{data:{first_name,last_name}}});
      if(error)throw error;
+     // Supabase may return no error for an existing confirmed account; empty identities identify that duplicate signup.
+     if(!data.session&&data.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0){setMode('signin');$('accountEmailInput').value=email;$('accountPassword').value='';$('accountStatus').textContent='Essa conta já existe. Entre com esse e-mail e sua senha.';return;}
      // No signup with email confirmation disabled, never leave the new account signed in: take the user to the explicit login step.
      if(data.session){setMode('signin');const {error:signOutError}=await authClient.auth.signOut();if(signOutError)throw signOutError;$('accountEmailInput').value=email;$('accountPassword').value='';$('accountStatus').textContent='Conta criada! Agora entre com seu e-mail e senha.';}
      else{setMode('signin');$('accountEmailInput').value=email;$('accountPassword').value='';$('accountStatus').textContent='Cadastro criado. Agora entre com seu e-mail e senha.';}
    }else{const {data,error}=await authClient.auth.signInWithPassword({email,password});if(error)throw error;showSession(data.session);}
- }catch(err){status.textContent=err?.message||'Não foi possível concluir. Confira os dados e tente novamente.';}finally{btn.disabled=false;}
+ }catch(err){const errorText=String(err?.message||'');if(mode==='signup'&&/(already registered|already exists|user exists|já existe|já está cadastrad|já cadastrada)/i.test(errorText)){const attemptedEmail=$('accountEmailInput').value.trim().toLowerCase();setMode('signin');$('accountEmailInput').value=attemptedEmail;$('accountPassword').value='';status.textContent='Essa conta já existe. Entre com esse e-mail e sua senha.';}else{status.textContent=errorText||'Não foi possível concluir. Confira os dados e tente novamente.';}}finally{btn.disabled=false;}
  });
  $('accountModeSwitch').addEventListener('click',()=>{recoveryCodeSent=false;setMode(mode==='signup'?'signin':'signup');});
  $('accountForgotPassword').addEventListener('click',()=>{recoveryCodeSent=false;$('recoveryCode').value='';$('accountPassword').value='';setMode('recovery');});
