@@ -45,6 +45,7 @@
         <label>Sobrenome<input id="accountLastName" type="text" autocomplete="family-name" maxlength="100" required></label>
       </div>
       <label>E-mail<input id="accountEmailInput" type="email" autocomplete="email" maxlength="254" required></label>
+      <label>Confirmar e-mail<input id="accountEmailConfirm" type="email" autocomplete="email" maxlength="254" required></label>
       <label>Senha<input id="accountPassword" type="password" autocomplete="new-password" minlength="8" required></label>
       <label class="account-consent" id="accountConsentRow"><input id="accountConsent" type="checkbox" required><span>Concordo que meu nome, sobrenome e e-mail sejam usados para criar e manter minha conta do chatbot. A senha é protegida pelo Supabase Auth.</span></label>
       <button class="account-primary" id="accountSubmit" type="submit">Criar conta</button>
@@ -114,11 +115,13 @@ try{let saved=JSON.parse(localStorage.getItem(STORE)||'null');if(saved?.cfg){cfg
  app.classList.add('account-locked');
  try { if(!window.supabase?.createClient) throw new Error('Não foi possível carregar o serviço de autenticação. Atualize a página e tente novamente.'); authClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}); }
  catch(e){ $('accountStatus').textContent=e.message; return; }
- function setMode(next){mode=next;const signup=mode==='signup';$('accountNames').hidden=!signup;$('accountFirstName').required=signup;$('accountLastName').required=signup;$('accountConsentRow').hidden=!signup;$('accountConsent').required=signup;$('accountPassword').autocomplete=signup?'new-password':'current-password';$('accountTitle').textContent=signup?'Crie sua conta':'Entre no Chatbot Gemini';$('accountIntro').textContent=signup?'Informe seus dados para criar uma conta. Cada pessoa usa sua própria chave Gemini, configurada neste aparelho.':'Entre com seu e-mail e senha para continuar. Sua chave Gemini permanece neste aparelho.';$('accountSubmit').textContent=signup?'Criar conta':'Entrar';$('accountModeSwitch').textContent=signup?'Já tenho conta — entrar':'Criar uma conta';$('accountStatus').textContent='';}
+ function setMode(next){mode=next;const signup=mode==='signup';$('accountNames').hidden=!signup;$('accountFirstName').required=signup;$('accountLastName').required=signup;$('accountEmailConfirm').parentElement.hidden=!signup;$('accountEmailConfirm').required=signup;$('accountConsentRow').hidden=!signup;$('accountConsent').required=signup;$('accountPassword').autocomplete=signup?'new-password':'current-password';$('accountTitle').textContent=signup?'Crie sua conta':'Entre no Chatbot Gemini';$('accountIntro').textContent=signup?'Informe seus dados para criar uma conta. Cada pessoa usa sua própria chave Gemini, configurada neste aparelho.':'Entre com seu e-mail e senha para continuar. Sua chave Gemini permanece neste aparelho.';$('accountSubmit').textContent=signup?'Criar conta':'Entrar';$('accountModeSwitch').textContent=signup?'Já tenho conta — entrar':'Criar uma conta';$('accountStatus').textContent='';}
  function showSession(session){const ok=!!session;app.classList.toggle('account-locked',!ok);gate.hidden=ok;if(ok){$('signedInEmail').textContent='Conectado como '+(session.user.email||'');}else{form.reset();setMode('signup');}}
  form.addEventListener('submit',async e=>{e.preventDefault();const status=$('accountStatus'),btn=$('accountSubmit');status.textContent='';btn.disabled=true;
  try {const email=$('accountEmailInput').value.trim().toLowerCase(),password=$('accountPassword').value;
    if(mode==='signup'){
+     const emailConfirm=$('accountEmailConfirm').value.trim().toLowerCase();
+     if(email!==emailConfirm)throw new Error('Os e-mails não conferem. Confira os dois campos.');
      const first_name=$('accountFirstName').value.trim(),last_name=$('accountLastName').value.trim();
      if(!first_name||!last_name)throw new Error('Informe nome e sobrenome.');
      if(!$('accountConsent').checked)throw new Error('Confirme o uso dos dados para criar sua conta.');
